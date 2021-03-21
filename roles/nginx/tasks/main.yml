@@ -33,7 +33,7 @@
 
 - name: 'Nginx is started'
   service:
-    name: 'nginx'
+    name: nginx
     state: 'started'
     enabled : true
   become: true
