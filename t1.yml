@@ -1,0 +1,88 @@
+- hosts: 'webservers'
+  remote_user: 'yerem'
+  vars_files:
+    - './group_value/variables.txt'
+  tasks:
+    - name: 'install required packages'
+      apt:
+        name: 
+           - 'nginx'
+           - 'unzip'
+           - 'php'
+           - 'php-fpm'
+           - 'php-mysql'
+           - 'mysql-server'
+           - 'python3-pip'
+           - 'python3-pymysql'
+        state: 'present'
+        update_cache: true
+      become: true
+    - name: 'Download and extract Wordpress files'
+      unarchive:
+        src: 'https://wordpress.org/latest.zip'
+        dest: '/var/www/html/'
+        owner: 'www-data'
+        group: 'www-data'
+        remote_src: true 
+      become: true
+    - name: 'Required python-mysql module'
+      pip:
+       name: PyMySQL
+      become: true
+    - name: 'start mysql'
+      service:
+        name: mysql
+        enabled: true
+        state: started
+      become: true  
+    #- name: 'set root password mysql'
+     # mysql_db:
+     #   check_implicit_admin: yes
+     #   login_user: root
+     #   login_password: '{{ mysql_root_pass }}'
+     #   #login_unix_socket: '/var/run/mysqld/mysqld.sock'
+     #   user: root
+     #   password: '{{ mysql_root_pass }}'
+     #  #host: localhost
+     # become: true
+    - name: 'Create a new database with name wordpress_db'
+      community.mysql.mysql_db:
+        login_unix_socket: '/var/run/mysqld/mysqld.sock'
+        name: 'wordpress1_db'
+        state: 'present'
+      become: true
+    - name: 'create user for wordpress'
+      mysql_user:  
+       name: 'wordpress1_user'
+       login_password: "my_password1"
+       update_password: 'on_create'
+       priv: 'wordpress1_db.*:ALL'
+       login_user: root
+       login_unix_socket: '/var/run/mysqld/mysqld.sock'
+    #  login_password: '{{mysql_root_pass}}'
+       state: 'present'
+      become: true
+    - name: 'Config file transfere'
+      template:
+        src: './wp-config.php'
+        dest: '/var/www/html/wordpress/wp-config.php'
+      become: 'yes'
+
+    - name: 'wordpress nginx config file'
+      copy:
+        src: './wordpress'
+        dest: '/etc/nginx/sites-available/wordpress'
+      become: 'yes'
+   
+    - name: 'Create symlink  for wordpress nginx config'
+      copy:
+        src: './wordpress'
+        dest: '/etc/nginx/sites-enabled/wordpress'
+       #state: 'link'
+      become: 'true'
+  handlers:
+   - name: 'Restart Nginx'
+     become: true
+     service:
+       name: 'nginx'
+       state: 'restarted'

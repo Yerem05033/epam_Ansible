@@ -1,0 +1,112 @@
+- hosts: 'webservers'
+  remote_user: 'yerem'
+  vars_files:
+    - './group_vars/variables.yml'
+  tasks:
+   - name: 'install required packages'
+     apt:
+       name: 
+           - 'nginx'
+           - 'unzip'
+           - 'php'
+           - 'php-fpm'
+           - 'php-mysql'
+           - 'mysql-server'
+           - 'python3-pip'
+           - 'python3-pymysql'
+       state: 'present'
+       update_cache: true
+     become: true
+   - name: 'Download and extract Wordpress files'
+     unarchive:
+       src: 'https://wordpress.org/latest.zip'
+       dest: '/var/www/html/'
+       owner: 'www-data'
+       group: 'www-data'
+       remote_src: true 
+     become: true
+   - name: 'Required python-mysql module'
+     pip:
+       name: 'PyMySQL'
+       state: 'present'
+     become: true
+   - name: Set mysql root password
+     mysql_user:
+       name: 'root'
+       password: '123456'
+       login_unix_socket: /var/run/mysqld/mysqld.sock
+       check_implicit_admin: yes
+       login_user: 'root'
+       login_password: '123456'
+     become: true
+   - name: 'Create a new database with name wordpress1_db'
+     community.mysql.mysql_db:
+       name: 'wordpress1_db'
+       state: present
+       login_user: 'root'
+       login_password: '123456'
+     become: true  
+   #- name: Create a new database with name 'wordpress1_db'
+   #  community.mysql.mysql_db:
+   #    login_user: 'root'
+   #    login_unix_socket: '/var/run/mysqld/mysqld.sock'
+   #    name: 'wordpres1_db'
+   #    state: 'present'
+   #  become: true 
+   #- name: Set Mysql root password
+   #  mysql_user: 
+   #    name: root
+   #    password: '{{ mysql_root_pass }}'
+   #    login_unix_socket: '/var/run/mysqld/mysqld.sock'
+   #    login_user: root
+   #    login_password: '{{ mysql_root_pass }}'
+   #    check_implicit_admin: 'yes'
+   #    priv: "*.*:ALL,GRANT"
+   #  become: 'yes'
+   #- name: 'create wordpress db'
+   #  mysql_db:
+   #    name: 'wordpress1_db'
+   #    state: 'present'
+   #    login_unix_socket: '/var/run/mysqld/mysqld.sock'
+   #  become: 'yes'
+   - name: 'create user for wordpress'
+     mysql_user:  
+       name: 'wordpress1_user'
+       password: "my_password1"
+       update_password: 'on_create'
+       priv: 'wordpress1_db.*:ALL'
+       login_user: root
+       #login_unix_socket: '/var/run/mysqld/mysqld.sock'
+       login_password: '123456'
+       #state: 'present'
+     become: true
+   - name: 'Config file transfere'
+     template:
+       src: './wp-config.php'
+       dest: '/var/www/html/wordpress/wp-config.php'
+     become: 'yes'
+
+   - name: 'wordpress nginx config file'
+     copy:
+       src: './wordpress'
+       dest: '/etc/nginx/sites-available/wordpress'
+     become: 'yes'
+   
+   - name: 'Create config file  for wordpress nginx config'
+     copy:
+       src: './wordpress'
+       dest: '/etc/nginx/sites-enabled/wordpress'
+       #state: 'link'
+     become: 'true'
+   - name: Delete default nginx config
+     file:
+       path: '/etc/nginx/sites-enabled/default'
+       state: absent
+     become: true  
+  handlers:
+   - name: 'Restart Nginx'
+     become: true
+     service:
+       name: 'nginx'
+       state: 'restarted'
+       enabled: true
