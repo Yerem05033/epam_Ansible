@@ -6,7 +6,7 @@ mysql_user_priv: 'wordpress1_db.*:ALL'
 
 nginx_doc_root: '/var/www/html/wordpress'
 nginx_index_file: 'index.php index.html'
-nginx_server_name: '34.70.217.46'
+nginx_server_name: '34.66.218.80'
 nginx-php-fpm-sack-path: '/var/run/php/php{{php-version}}-fpm.sock'
 
 
