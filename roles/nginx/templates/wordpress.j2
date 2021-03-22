@@ -8,7 +8,7 @@ server {
 
 	location ~ \.php$ {
                include snippets/fastcgi-php.conf;
-               fastcgi_pass unix:{{nginx-php-fpm-sack-path}};
+               fastcgi_pass unix:{{nginx_php_fpm_sack_path}};
             }
 	
 }
