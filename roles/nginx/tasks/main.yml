@@ -30,7 +30,13 @@
     path: '/etc/nginx/sites-enabled/default'
     state: absent
   become: true  
-
+- name: 'stop apache'
+  service:
+    name: 'apache2'
+    state: 'stopped'
+    enabled: false
+  become: true
+  
 - name: 'Nginx is started'
   service:
     name: 'nginx'
